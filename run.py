@@ -1,7 +1,10 @@
+import os
 import re
 import sqlite3
 import string
+import sys
 from collections import Counter
+from pathlib import Path
 
 import jieba
 import pandas as pd
@@ -10,11 +13,23 @@ from pyecharts import options as opts
 from pyecharts.charts import Bar, Page, WordCloud
 from pyecharts.globals import WarningType
 
+from util import stopwords
+
 WarningType.ShowWarning = False
-# 微信数据库路径
-path = ''
+
 # 需要分析的人的微信号
-talker = ''
+talker = os.getenv('TALKER')
+
+if not talker:
+    print('talker is null!!')
+    sys.exit(-1)
+
+# 查找db文件
+if path := list(Path('./data/').glob('*.db')):
+    path = path[0]
+else:
+    print('db file not found!!')
+    sys.exit(-1)
 
 # 加载数据
 con = sqlite3.connect(path)
@@ -67,9 +82,8 @@ bar2.add_yaxis(hour.columns[1], hour['content'].tolist())
 result = []
 # 排除列表，包括中英文标点符号和一些停止词
 extend = list('，。、【 】 “”：；（）《》‘’{}？！⑦()、%^>℃：.”“^-——=&#@￥') + list(string.punctuation)
-with open('cn_stopwords.txt', 'r', encoding='utf8') as f:
-    for cc in f:
-        extend.append(cc.replace('\n', ''))
+for cc in stopwords:
+    extend.append(cc.replace('\n', ''))
 # 可选是否要过滤掉表情
 extend = list(set(extend))  # +['旺柴','捂脸','皱眉','吃瓜']
 for a in data['content'].tolist():
@@ -78,7 +92,7 @@ for a in data['content'].tolist():
             result.append(b)
 
 bar3 = WordCloud()
-bar3.add(series_name="词云", data_pair=Counter(result).items(), word_size_range=[10, 80])
+bar3.add(series_name="词云", data_pair=list(Counter(result).items()), word_size_range=[10, 80])
 bar3.set_global_opts(
     title_opts=opts.TitleOpts(
         title="词云", title_textstyle_opts=opts.TextStyleOpts(font_size=23)
@@ -123,4 +137,6 @@ grid.add(bar3)
 grid.add(bar4)
 grid.add(bar5)
 grid.add(bar6)
-grid.render()
+# 在同一个父路径下生成HTML文件
+grid.render(str(path.parent / f'{talker}.html'))
+print('success!')
