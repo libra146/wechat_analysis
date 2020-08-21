@@ -8,7 +8,9 @@ import pandas as pd
 from pandas import DataFrame
 from pyecharts import options as opts
 from pyecharts.charts import Bar, Page, WordCloud
+from pyecharts.globals import WarningType
 
+WarningType.ShowWarning = False
 # 微信数据库路径
 path = ''
 # 需要分析的人的微信号
